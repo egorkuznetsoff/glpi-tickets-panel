@@ -1,0 +1,1566 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Создание тикета в GLPI – Schlumberger IT Helpdesk</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --slb-blue: #0033A0;
+            --slb-light-blue: #0055D4;
+            --slb-white: #FFFFFF;
+            --slb-gray: #F5F5F5;
+            --slb-dark: #2C3E50;
+            --slb-success: #27AE60;
+            --slb-error: #C0392B;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: var(--slb-gray);
+            color: var(--slb-dark);
+            margin: 0;
+            padding: 0;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+        .slb-header {
+            background: var(--slb-blue);
+            color: var(--slb-white);
+            padding: 20px 40px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .slb-header h1 { margin: 0; font-size: 28px; font-weight: 700; }
+        .slb-header p { margin: 8px 0 0; font-size: 16px; opacity: 0.9; }
+
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            background: var(--slb-white);
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+            overflow: hidden;
+        }
+
+        .yform-step { display: none; padding: 40px; }
+        .yform-step.active { display: block; }
+
+        .yform-progress {
+            display: flex; justify-content: space-between; background: #eee;
+            margin: 0 40px; border-radius: 8px; overflow: hidden;
+        }
+
+        .yform-progress-item {
+            flex: 1; text-align: center; padding: 12px 0; background: #ddd;
+            color: #777; font-weight: 500; position: relative;
+        }
+
+        .yform-progress-item.active { background: var(--slb-blue); color: white; }
+        .yform-progress-item.completed { background: var(--slb-light-blue); color: white; }
+
+        .yform-progress-item:not(:last-child)::after {
+            content: ''; position: absolute; right: -1px; top: 50%; transform: translateY(-50%);
+            width: 0; height: 0; border-top: 12px solid transparent;
+            border-bottom: 12px solid transparent; border-left: 12px solid #ddd; z-index: 1;
+        }
+
+        .yform-progress-item.active:not(:last-child)::after,
+        .yform-progress-item.completed:not(:last-child)::after { border-left-color: var(--slb-blue); }
+        .yform-progress-item.completed:not(:last-child)::after { border-left-color: var(--slb-light-blue); }
+
+        .form-group { margin-bottom: 28px; }
+        label { display: block; margin-bottom: 10px; font-weight: 600; color: var(--slb-blue); font-size: 17px; }
+
+        input[type=text], select, textarea {
+            width: 100%; padding: 14px 16px; border: 2px solid #ddd; border-radius: 8px;
+            font-size: 16px; box-sizing: border-box; transition: all .3s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none; border-color: var(--slb-light-blue);
+            box-shadow: 0 0 0 3px rgba(0, 85, 212, 0.2);
+        }
+
+        textarea { min-height: 120px; resize: vertical; }
+        .readonly { background: #f9f9f9; color: #555; border-color: #ccc; }
+
+        .user-search { position: relative; }
+        .user-suggestions {
+            position: absolute; top: 100%; left: 0; right: 0; background: white;
+            border: 2px solid #ddd; border-top: none; border-radius: 0 0 8px 8px;
+            max-height: 240px; overflow-y: auto; z-index: 10; display: none;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.12);
+        }
+
+        .user-suggestion {
+            padding: 14px 16px; cursor: pointer; border-bottom: 1px solid #eee; font-size: 16px;
+        }
+        .user-suggestion:hover { background: #ebf3fd; }
+
+        .user-info { font-size: 14px; color: #7f8c8d; margin-top: 6px; }
+        .error-msg { color: var(--slb-error); font-size: 14px; margin-top: 6px; display: none; }
+        .loading { display: none; color: var(--slb-blue); font-weight: 500; text-align: center; margin-top: 10px; }
+
+        .special-fields {
+            display: none; border-top: 2px solid #eee; padding-top: 20px; margin-top: 20px;
+        }
+
+        .checkbox-group { display: flex; flex-direction: column; gap: 12px; margin-top: 10px; }
+        .checkbox-item { display: flex; align-items: center; font-size: 16px; }
+        .checkbox-item input[type="checkbox"] { width: auto; margin-right: 10px; transform: scale(1.2); }
+
+        .file-input-wrapper { position: relative; overflow: hidden; display: inline-block; width: 100%; }
+        .file-input-wrapper input[type=file] { font-size: 200px; position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; }
+        .file-input-button {
+            display: block; padding: 14px 20px; background: #ecf0f1; border: 2px solid #bdc3c7;
+            border-radius: 8px; cursor: pointer; text-align: center; font-size: 16px; transition: background .3s;
+        }
+        .file-input-button:hover { background: #d5dbdb; }
+
+        .file-list {
+            margin-top: 12px; padding: 12px; background: #f8f9fa; border-radius: 8px;
+            border: 2px dashed #bdc3c7; min-height: 50px;
+        }
+
+        .file-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 8px 0; font-size: 15px;
+        }
+        .file-item .remove { color: var(--slb-error); cursor: pointer; font-weight: bold; font-size: 20px; }
+
+        .yform-nav {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 30px;
+            padding: 0 40px 40px;
+        }
+
+        button {
+            background: var(--slb-blue); color: white; border: none; padding: 14px 28px;
+            font-size: 16px; font-weight: 600; border-radius: 8px; cursor: pointer; transition: background .3s;
+        }
+        button:hover { background: var(--slb-light-blue); }
+        button:disabled { background: #95a5a6; cursor: not-allowed; }
+
+        .btn-prev { background: #95a5a6; }
+        .btn-prev:hover { background: #7f8c8d; }
+
+        .result {
+            margin: 30px 40px; padding: 20px; border-radius: 8px; font-weight: 600;
+            text-align: center; display: none; font-size: 18px;
+        }
+        .success { background: #d5efdb; color: var(--slb-success); border: 2px solid var(--slb-success); }
+        .error { background: #fadbd8; color: var(--slb-error); border: 2px solid var(--slb-error); }
+
+        .ticket-link { color: var(--slb-success); text-decoration: underline; font-weight: bold; cursor: pointer; }
+
+        .btn-new-ticket {
+            display: none; margin: 0 auto 20px; background: var(--slb-success); color: white;
+            border: none; padding: 14px 32px; font-size: 16px; font-weight: 600;
+            border-radius: 8px; cursor: pointer; transition: background .3s;
+        }
+        .btn-new-ticket:hover { background: #1e8449; }
+
+        .summary-card {
+            margin: 0 0 24px; border: 2px solid #d0dff7; border-radius: 10px;
+            background: #f0f5ff; overflow: hidden;
+        }
+        .summary-title {
+            background: var(--slb-blue); color: white; padding: 12px 20px;
+            font-size: 15px; font-weight: 600;
+        }
+        .summary-grid { padding: 8px 0; }
+        .summary-row {
+            display: flex; align-items: flex-start; padding: 10px 20px;
+            border-bottom: 1px solid #dce8f8; gap: 16px;
+        }
+        .summary-row:last-child { border-bottom: none; }
+        .summary-label {
+            flex: 0 0 140px; font-weight: 600; color: var(--slb-blue);
+            font-size: 14px; padding-top: 1px;
+        }
+        .summary-value { flex: 1; font-size: 15px; color: var(--slb-dark); word-break: break-word; }
+        .summary-additional { white-space: pre-wrap; font-size: 14px; color: #555; }
+        .summary-files-list { list-style: none; padding: 0; margin: 0; }
+        .summary-files-list li { font-size: 14px; color: #555; padding: 2px 0; }
+        .summary-files-list li::before { content: "📎 "; }
+        .content-note { font-size: 14px; color: #7f8c8d; margin-top: 6px; font-style: italic; }
+        .section-title {
+            font-size: 18px; color: var(--slb-blue); margin: 24px 0 12px;
+            font-weight: 600; border-bottom: 1px solid #eee; padding-bottom: 8px;
+        }
+
+        .devices-table {
+            width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 15px;
+        }
+        .devices-table th {
+            background: var(--slb-blue); color: white; padding: 10px 14px;
+            text-align: left; font-weight: 600;
+        }
+        .devices-table td {
+            padding: 10px 14px; border-bottom: 1px solid #eee;
+        }
+        .devices-table tr:last-child td { border-bottom: none; }
+        .devices-table tr:nth-child(even) td { background: #f8f9fa; }
+        .devices-table tr:hover td { background: #ebf3fd; }
+        .devices-empty {
+            color: #7f8c8d; font-style: italic; padding: 14px 0; text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="slb-header">
+        <h1>Schlumberger IT Helpdesk</h1>
+        <p>Создание заявки в GLPI – пошаговая форма</p>
+    </div>
+
+    <div class="container">
+        <div class="yform-progress">
+            <div class="yform-progress-item active" data-step="1">1. Заявитель</div>
+            <div class="yform-progress-item" data-step="2">2. Шаблон</div>
+            <div class="yform-progress-item" data-step="3">3. Актив</div>
+            <div class="yform-progress-item" data-step="4">4. Содержание</div>
+            <div class="yform-progress-item" data-step="5">5. Файлы</div>
+            <div class="yform-progress-item" data-step="6">6. Отправка</div>
+        </div>
+
+        <form id="glpi-form">
+
+            <!-- ШАГ 1: Заявитель -->
+            <div class="yform-step active" id="step-1">
+                <div class="form-group">
+                    <label for="requester">Заявитель (Requester):</label>
+                    <div class="user-search">
+                        <input type="text" id="requester" placeholder="Начните вводить логин, имя или фамилию..." autocomplete="off">
+                        <div id="user-suggestions" class="user-suggestions"></div>
+                    </div>
+                    <div id="requester-info" class="user-info"></div>
+                    <div id="requester-error" class="error-msg"></div>
+                    <div id="requester-loading" class="loading">Поиск...</div>
+                </div>
+            </div>
+
+            <!-- ШАГ 2: Шаблон -->
+            <div class="yform-step" id="step-2">
+                <div class="form-group">
+                    <label for="template">Выберите шаблон заявки:</label>
+                    <select id="template">
+                        <option value="">— Выберите шаблон —</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- ШАГ 3: Актив -->
+            <div class="yform-step" id="step-3">
+                <div class="form-group" id="asset-group">
+                    <label for="asset">Инвентарный номер актива:</label>
+                    <input type="text" id="asset" placeholder="Например: 123123" maxlength="20">
+                    <div class="content-note" id="asset-hint"></div>
+                </div>
+
+                <div class="form-group" id="employee-group" style="display:none;">
+                    <label for="employee">ФИО сотрудника:</label>
+                    <input type="text" id="employee" placeholder="Введите ФИО сотрудника">
+                </div>
+
+                <div id="special-fields" class="special-fields">
+                    <div id="computer-desc-group" style="display:none;">
+                        <div class="section-title">Опишите наблюдаемые проблемы:</div>
+                        <div class="form-group">
+                            <textarea id="computer-desc" placeholder="Например: тормозит при запуске программ, синий экран и т.д."></textarea>
+                        </div>
+                    </div>
+
+                    <div id="hardware-options-group" style="display:none;">
+                        <div class="section-title">Выберите проблемное оборудование (можно несколько):</div>
+                        <div class="checkbox-group">
+                            <label class="checkbox-item"><input type="checkbox" value="Клавиатура"> Клавиатура</label>
+                            <label class="checkbox-item"><input type="checkbox" value="Мышь"> Мышь</label>
+                            <label class="checkbox-item"><input type="checkbox" value="Гарнитура (проводная)"> Гарнитура (проводная)</label>
+                            <label class="checkbox-item"><input type="checkbox" value="Гарнитура (беспроводная)"> Гарнитура (беспроводная)</label>
+                            <label class="checkbox-item"><input type="checkbox" value="Сетевой кабель"> Сетевой кабель</label>
+                            <label class="checkbox-item"><input type="checkbox" value="ИБП (Источник бесперебоиного питания)"> ИБП (Источник бесперебоиного питания)</label>
+                            <label class="checkbox-item"><input type="checkbox" value="Монитор"> Монитор</label>
+                            <label class="checkbox-item"><input type="checkbox" value="Кабель монитора"> Кабель монитора</label>
+                            <label class="checkbox-item"><input type="checkbox" value="Док станция"> Док станция</label>
+                        </div>
+                    </div>
+
+                    <div id="cartridge-fields" style="display:none;">
+                        <div class="section-title">Информация о МФУ (обязательно)</div>
+                        <div class="form-group">
+                            <label for="cartridge-contact">Контактный телефон:</label>
+                            <input type="text" id="cartridge-contact" placeholder="Например: 89129129191">
+                        </div>
+                        <div class="form-group">
+                            <label for="cartridge-location-select">Локация:</label>
+                            <select id="cartridge-location-select">
+                                <option value="">— Выберите локацию —</option>
+                                <option value="RU0974">RU0974 (пос.Ферма, ул.Нефтяников, д.25)</option>
+                                <option value="RU0943">RU0943 (г.Пермь, ул.Окулова, д.75А)</option>
+                                <option value="RU0976">RU0976 (пос.Зюкайка)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="cartridge-location-detail">Размещение аппарата (корпус, этаж, кабинет, отдел):</label>
+                            <input type="text" id="cartridge-location-detail" placeholder="Например: 5 корпус, 3 этаж, 120 кабинет, Отдел бурения">
+                        </div>
+                        <div class="form-group">
+                            <label for="cartridge-model">Тип оборудования, модель МФУ:</label>
+                            <input type="text" id="cartridge-model" placeholder="Например: HP LaserJet Pro M426fdn A4">
+                        </div>
+                        <div class="form-group">
+                            <label for="cartridge-serial">Серийный AXUS № оборудования:</label>
+                            <input type="text" id="cartridge-serial" placeholder="Оставьте как есть, если совпадает с инв. номером">
+                        </div>
+                        <div class="form-group">
+                            <label for="cartridge-color">Цвет картриджа:</label>
+                            <select id="cartridge-color">
+                                <option value="">— Выберите цвет —</option>
+                                <option value="черный">Черный (Black)</option>
+                                <option value="голубой">Голубой (Cyan)</option>
+                                <option value="пурпурный">Пурпурный (Magenta)</option>
+                                <option value="желтый">Желтый (Yellow)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="peripherals-fields" style="display:none;">
+                        <div class="section-title">Причина запроса:</div>
+                        <div class="form-group">
+                            <select id="peripherals-reason">
+                                <option value="">— Выберите причину —</option>
+                                <option value="отсутствие">Отсутствие</option>
+                                <option value="неисправность">Неисправность</option>
+                                <option value="дополнительно">Дополнительно</option>
+                            </select>
+                        </div>
+                        <div class="section-title">Выберите необходимую периферию (можно несколько):</div>
+                        <div class="checkbox-group">
+                            <label class="checkbox-item"><input type="checkbox" value="Клавиатура"> Клавиатура</label>
+                            <label class="checkbox-item"><input type="checkbox" value="Мышь"> Мышь</label>
+                            <label class="checkbox-item"><input type="checkbox" value="Кабель для монитора"> Кабель для монитора</label>
+                            <label class="checkbox-item"><input type="checkbox" value="Зарядное устройство для ноутбука"> Зарядное устройство для ноутбука</label>
+                            <label class="checkbox-item"><input type="checkbox" value="Трос безопасности"> Трос безопасности</label>
+                            <label class="checkbox-item"><input type="checkbox" value="Гарнитура"> Гарнитура</label>
+                            <label class="checkbox-item"><input type="checkbox" value="Монитор"> Монитор</label>
+                        </div>
+                    </div>
+
+                    <div id="outlook-signature-fields" style="display:none;">
+                        <div class="section-title">Введите текст подписи:</div>
+                        <div class="form-group">
+                            <textarea id="outlook-signature-text" placeholder="Например:&#10;С уважением,&#10;Иванов Иван Иванович&#10;Ведущий инженер&#10;+7 (999) 123-45-67&#10;ivanov@example.com"></textarea>
+                            <div class="content-note">Эта подпись будет добавлена в Outlook</div>
+                        </div>
+                    </div>
+
+                    <div id="ownership-change-fields" style="display:none;">
+                        <div class="section-title">Смена владельца компьютера</div>
+                        <div class="form-group">
+                            <label for="old-owner">Текущий владелец:</label>
+                            <div class="user-search">
+                                <input type="text" id="old-owner" placeholder="Начните вводить ФИО..." autocomplete="off">
+                                <div id="old-owner-suggestions" class="user-suggestions"></div>
+                            </div>
+                            <div id="old-owner-info" class="user-info"></div>
+                            <div id="old-owner-error" class="error-msg"></div>
+                            <div id="old-owner-loading" class="loading">Поиск...</div>
+                        </div>
+                        <div class="form-group">
+                            <label for="new-owner">Новый владелец:</label>
+                            <div class="user-search">
+                                <input type="text" id="new-owner" placeholder="Начните вводить ФИО..." autocomplete="off">
+                                <div id="new-owner-suggestions" class="user-suggestions"></div>
+                            </div>
+                            <div id="new-owner-info" class="user-info"></div>
+                            <div id="new-owner-error" class="error-msg"></div>
+                            <div id="new-owner-loading" class="loading">Поиск...</div>
+                        </div>
+                        <div class="form-group">
+                            <label for="ownership-asset-select">Инвентарный номер ПК (выберите из списка):</label>
+                            <select id="ownership-asset-select" style="display:none;">
+                                <option value="">— Выберите компьютер —</option>
+                            </select>
+                            <div id="ownership-asset-manual" style="display:none;">
+                                <input type="text" id="ownership-asset" placeholder="Например: 123123" maxlength="20">
+                            </div>
+                            <div id="ownership-asset-info" class="user-info" style="margin-top:6px;"></div>
+                        </div>
+                    </div>
+
+                    <!-- ШАБЛОН: Восстановление пароля -->
+                    <div id="password-fields" style="display:none;">
+                        <div class="section-title">Данные сотрудника (обязательно)</div>
+                        <div class="form-group">
+                            <label for="password-fullname">ФИО сотрудника:</label>
+                            <input type="text" id="password-fullname" placeholder="Например: Иванов Иван Иванович">
+                        </div>
+                        <div class="form-group">
+                            <label for="password-login">Логин (доменный):</label>
+                            <input type="text" id="password-login" placeholder="Например: i.ivanov">
+                        </div>
+                        <div class="form-group">
+                            <label for="password-phone">Номер телефона:</label>
+                            <input type="text" id="password-phone" placeholder="Например: +7 (912) 345-67-89">
+                        </div>
+                    </div>
+
+                    <!-- ШАБЛОН: Поиск моих устройств -->
+                    <div id="find-devices-fields" style="display:none;">
+                        <div class="section-title">Устройства, закреплённые за заявителем:</div>
+                        <div id="find-devices-loading" class="loading" style="display:none; text-align:left;">Загрузка устройств из GLPI...</div>
+                        <div id="find-devices-error" class="error-msg" style="display:none;"></div>
+                        <div id="find-devices-list"></div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ШАГ 4: Содержание -->
+            <div class="yform-step" id="step-4">
+                <div class="form-group">
+                    <label for="subject">Тема тикета:</label>
+                    <input type="text" id="subject" readonly class="readonly">
+                </div>
+                <div class="section-title">Содержание заявки (из шаблона)</div>
+                <div class="form-group">
+                    <textarea id="template-content" readonly class="readonly" style="min-height:160px;"></textarea>
+                    <div class="content-note">Это текст из выбранного шаблона. Он отправится в тикет как есть.</div>
+                </div>
+                <div class="section-title">Дополнительные сведения (по желанию)</div>
+                <div class="form-group">
+                    <textarea id="additional-content" placeholder="Опишите проблему подробнее, добавьте симптомы, срочность и т.д."></textarea>
+                    <div class="content-note">Этот текст будет добавлен ниже основного содержания заявки.</div>
+                </div>
+            </div>
+
+            <!-- ШАГ 5: Файлы -->
+            <div class="yform-step" id="step-5">
+                <div class="form-group">
+                    <label>Прикрепить файлы:</label>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="file-input" multiple accept="image/*,.pdf,.txt,.log,.doc,.docx">
+                        <div class="file-input-button">Выберите файлы (макс. 5 МБ каждый)</div>
+                    </div>
+                    <div id="file-list" class="file-list"><em style="color:#95a5a6">Файлы не выбраны</em></div>
+                    <div id="file-error" class="error-msg"></div>
+                </div>
+            </div>
+
+            <!-- ШАГ 6: Результат -->
+            <div class="yform-step" id="step-6">
+                <!-- Сводка перед отправкой -->
+                <div id="summary-card" class="summary-card">
+                    <div class="summary-title">📋 Проверьте данные перед отправкой</div>
+                    <div class="summary-grid">
+                        <div class="summary-row">
+                            <span class="summary-label">Заявитель</span>
+                            <span class="summary-value" id="sum-requester">—</span>
+                        </div>
+                        <div class="summary-row">
+                            <span class="summary-label">Шаблон</span>
+                            <span class="summary-value" id="sum-template">—</span>
+                        </div>
+                        <div class="summary-row" id="sum-asset-row">
+                            <span class="summary-label">Актив / ФИО</span>
+                            <span class="summary-value" id="sum-asset">—</span>
+                        </div>
+                        <div class="summary-row">
+                            <span class="summary-label">Тема тикета</span>
+                            <span class="summary-value" id="sum-subject">—</span>
+                        </div>
+                        <div class="summary-row" id="sum-additional-row" style="display:none;">
+                            <span class="summary-label">Доп. сведения</span>
+                            <span class="summary-value summary-additional" id="sum-additional">—</span>
+                        </div>
+                        <div class="summary-row" id="sum-files-row" style="display:none;">
+                            <span class="summary-label">Файлы</span>
+                            <span class="summary-value" id="sum-files">—</span>
+                        </div>
+                    </div>
+                </div>
+                <div id="result" class="result"></div>
+                <div id="submit-loading" class="loading">Создание тикета и загрузка файлов...</div>
+                <button type="button" class="btn-new-ticket" id="new-ticket-btn">＋ Новая заявка</button>
+            </div>
+
+            <div class="yform-nav">
+                <button type="button" class="btn-prev" id="prev-btn" style="display:none;">Назад</button>
+                <button type="button" id="next-btn">Далее</button>
+                <button type="button" id="submit-btn" style="display:none;">Отправить тикет</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        // === КОНФИГУРАЦИЯ ===
+        const CONFIG = {
+            glpiApiUrl: 'https://glpi.example.com/apirest.php',
+            glpiAppToken: 'CHANGE_ME_GLPI_APP_TOKEN',
+            glpiUserToken: 'CHANGE_ME_GLPI_USER_TOKEN',
+            glpiBaseUrl: 'https://glpi.example.com',
+            telegramBotToken: 'CHANGE_ME_TELEGRAM_BOT_TOKEN',
+            telegramChatId: 'CHANGE_ME_TELEGRAM_CHAT_ID',
+            searchDebounceMs: 400,
+            maxFileSizeBytes: 5 * 1024 * 1024,
+            userCacheSize: 100
+        };
+
+        const LOCATIONS = {
+            'RU0974': 'RU0974 (пос.Ферма, ул.Нефтяников, д.25)',
+            'RU0943': 'RU0943 (г.Пермь, ул.Окулова, д.75А)',
+            'RU0976': 'RU0976 (пос.Зюкайка)'
+        };
+
+        // === ШАБЛОНЫ ===
+        const TEMPLATES_RAW = {
+            reimage:            { subject: 'Переустановка ОС / Reimage',                          content: 'Прошу переустановить ОС на компьютере #000000',                                                                                  placeholder: 'Введите инвентарный номер компьютера (например: 123123)', requiresAsset: true },
+            cartridge:          { subject: 'Замена картриджа в МФУ / Replacing the cartridge',    content: 'Прошу заменить ЦВЕТ картридж в МФУ #000000',                                                                                    placeholder: 'Введите инвентарный номер МФУ (например: 2323123)',        requiresAsset: true,  special: 'cartridge' },
+            repair:             { subject: 'Ремонт компьютера / Repair',                           content: 'Прошу произвести ремонт компьютера #000000',                                                                                   placeholder: 'Введите инвентарный номер компьютера (например: 123123)', requiresAsset: true },
+            pass:               { subject: 'Пропуск / Pass',                                       content: 'Прошу выдать пропуск новому сотруднику',                                                                                       placeholder: 'ФИО нового сотрудника',                                   requiresAsset: false },
+            password:           { subject: 'Восстановление пароля / Password',                    content: 'Прошу сбросить пароль для сотрудника:',                                                                                        placeholder: 'Не требуется',                                           requiresAsset: false, special: 'password' },
+            'outlook-config':   { subject: 'Настройка Outlook / Configuring Outlook',             content: 'Прошу настроить Outlook для работы с почтой',                                                                                 placeholder: 'Не требуется',                                           requiresAsset: false },
+            'outlook-signature':{ subject: 'Подпись в Outlook / Signature in Outlook',            content: 'Прошу настроить подпись в Outlook для компьютера #000000\n\nВаша подпись:\n[введите текст подписи ниже]',                     placeholder: 'Введите инвентарный номер компьютера (например: 123123)', requiresAsset: true,  special: 'outlook-signature' },
+            mfa:                { subject: 'Мультифактор / Multifactor',   content: 'Прошу настроить мультифактор на телефоне',                                                                                   placeholder: 'Не требуется',                                           requiresAsset: false },
+            checkpoint:         { subject: 'Настройка ЧекПоинт / Configuring Check Point',       content: 'Прошу настроить ЧекПоинт для удаленой работы',                                                                               placeholder: 'Не требуется',                                           requiresAsset: false },
+            consultation:       { subject: 'Консультация / Consultation',                          content: 'Прошу провести консультацию',                                                                                                 placeholder: 'Не требуется',                                           requiresAsset: false },
+            printer:            { subject: 'Подключение к принтеру / Connecting to the printer',  content: 'Прошу подключить принтер #000000',                                                                                            placeholder: 'Введите инвентарный номер принтера (например: 123123)',   requiresAsset: true },
+            'computer-prep':    { subject: 'Подготовка компьютера / Computer Preparation',        content: 'Прошу подготовить компьютер #000000 на выдачу',                                                                              placeholder: 'Введите инвентарный номер компьютера (например: 123123)', requiresAsset: true },
+            'computer-problems':{ subject: 'Проблемы с компьютером / Computer problems',          content: 'Прошу провести осмотр компьютера #000000 наблюдаются проблемы (указать в поле ниже):',                                      placeholder: 'Введите инвентарный номер компьютера (например: 123123)', requiresAsset: true,  special: 'computer-desc' },
+            'drweb-issues':     { subject: 'Проблемы с антивирусом DR.Web / DR.Web issues',       content: 'Прошу провести осмотр на наличие проблем с антивирусом на компьютера #000000',                                              placeholder: 'Введите инвентарный номер компьютера (например: 123123)', requiresAsset: true },
+            'hardware-problems':{ subject: 'Проблемы с оборудованием / Hardware problems',        content: 'Прошу провести тестирование на наличие проблем с оборудованием(выбрать ниже):',                                             placeholder: 'Не требуется (выберите оборудование ниже)',               requiresAsset: false, special: 'hardware-options' },
+            peripherals:        { subject: 'Запрос на периферию / Requesting peripherals',         content: 'В связи с [ПРИЧИНА] прошу выдать, при наличии:',                                                                            placeholder: 'Не требуется',                                           requiresAsset: false, special: 'peripherals' },
+            'ownership-change': { subject: 'Смена владельца / Change of ownership',               content: 'Прошу сменить владельца компьютера #000000 с [СТАРЫЙ_ВЛАДЕЛЕЦ] на [НОВЫЙ_ВЛАДЕЛЕЦ]',                                       placeholder: 'Выберите компьютер из списка',                           requiresAsset: true,  special: 'ownership-change' },
+            'find-devices':     { subject: 'Поиск моих устройств / Find my devices',              content: 'Прошу предоставить информацию об устройствах, закреплённых за мной в системе GLPI.',                                        placeholder: 'Не требуется',                                           requiresAsset: false, special: 'find-devices' }
+        };
+
+        // Сортируем шаблоны по алфавиту один раз
+        const TEMPLATES = Object.fromEntries(
+            Object.entries(TEMPLATES_RAW).sort(([, a], [, b]) =>
+                a.subject.localeCompare(b.subject, 'en', { sensitivity: 'base' })
+            )
+        );
+
+        // === УТИЛИТЫ ===
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function truncate(str, n) {
+            return str.length > n ? str.substr(0, n - 1) + '...' : str;
+        }
+
+        function debounce(fn, delay) {
+            let timer;
+            return (...args) => {
+                clearTimeout(timer);
+                timer = setTimeout(() => fn(...args), delay);
+            };
+        }
+
+        // === LRU-КЭШ ДЛЯ ПОЛЬЗОВАТЕЛЕЙ ===
+        class LRUCache {
+            constructor(maxSize) {
+                this.maxSize = maxSize;
+                this.map = new Map();
+            }
+            get(key) {
+                if (!this.map.has(key)) return undefined;
+                const val = this.map.get(key);
+                this.map.delete(key);
+                this.map.set(key, val);
+                return val;
+            }
+            set(key, value) {
+                if (this.map.has(key)) this.map.delete(key);
+                else if (this.map.size >= this.maxSize) this.map.delete(this.map.keys().next().value);
+                this.map.set(key, value);
+            }
+        }
+
+        const userSearchCache = new LRUCache(CONFIG.userCacheSize);
+
+        // === GLPI API ===
+        let sessionToken = null;
+
+        async function glpiFetch(path, options = {}) {
+            const headers = {
+                'App-Token': CONFIG.glpiAppToken,
+                ...(sessionToken ? { 'Session-Token': sessionToken } : {}),
+                ...options.headers
+            };
+            const res = await fetch(`${CONFIG.glpiApiUrl}${path}`, { ...options, headers });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.message || `HTTP ${res.status}`);
+            }
+            return res.json();
+        }
+
+        async function initSession() {
+            if (sessionToken) return;
+            const data = await fetch(`${CONFIG.glpiApiUrl}/initSession`, {
+                headers: {
+                    'Authorization': `user_token ${CONFIG.glpiUserToken}`,
+                    'App-Token': CONFIG.glpiAppToken
+                }
+            }).then(r => {
+                if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                return r.json();
+            });
+            sessionToken = data.session_token;
+        }
+
+        // Батч-загрузка пользователей: параллельные запросы вместо последовательных
+        async function fetchUsersData(userIds) {
+            const results = await Promise.allSettled(
+                userIds.map(id => glpiFetch(`/User/${id}`))
+            );
+            return results
+                .filter(r => r.status === 'fulfilled')
+                .map(r => {
+                    const u = r.value;
+                    const namePart = [u.firstname, u.realname].filter(Boolean).join(' ').trim();
+                    return {
+                        id: u.id,
+                        login: u.name,
+                        fullName: namePart ? `${u.name} (${namePart})` : u.name
+                    };
+                });
+        }
+
+        async function searchUsers(query) {
+            const cacheKey = query.toLowerCase();
+            const cached = userSearchCache.get(cacheKey);
+            if (cached) return cached;
+
+            await initSession();
+            const fields = [1, 8, 9];
+            const criteria = fields.map((field, i) => [
+                `criteria[${i}][field]=${field}`,
+                `criteria[${i}][link]=OR`,
+                `criteria[${i}][searchtype]=contains`,
+                `criteria[${i}][value]=${encodeURIComponent(query)}`
+            ].join('&')).join('&');
+
+            const data = await glpiFetch(`/search/User?${criteria}&forcedisplay[0]=2&range=0-19`);
+            const ids = (data.data || []).map(u => u['2']);
+            const users = await fetchUsersData(ids);
+
+            userSearchCache.set(cacheKey, users);
+            return users;
+        }
+
+        async function loadUserComputers(userId) {
+            await initSession();
+            const data = await glpiFetch(
+                `/search/Computer?criteria[0][field]=5&criteria[0][link]=AND&criteria[0][searchtype]=equals&criteria[0][value]=${userId}&forcedisplay[0]=1&forcedisplay[1]=2&range=0-99`
+            );
+            return (data.data || []).map(c => ({ id: c['1'], name: (c['2'] || `ПК #${c['1']}`).trim() }));
+        }
+
+        async function loadAllUserDevices(userId) {
+            await initSession();
+
+            // Используем прямые sub-item endpoints: GET /User/{id}/ItemType
+            // Это надёжнее чем search API с field=5
+            const deviceTypes = [
+                { type: 'Computer',   label: 'Компьютер'    },
+                { type: 'Monitor',    label: 'Монитор'       },
+                { type: 'Phone',      label: 'Телефон'       },
+                { type: 'Peripheral', label: 'Периферия'     },
+                { type: 'Printer',    label: 'Принтер/МФУ'   },
+                { type: 'NetworkEquipment', label: 'Сетевое оборудование' },
+            ];
+
+            async function fetchSubItems(type) {
+                const url = `${CONFIG.glpiApiUrl}/User/${userId}/${type}?range=0-99`;
+                const res = await fetch(url, {
+                    headers: { 'Session-Token': sessionToken, 'App-Token': CONFIG.glpiAppToken }
+                });
+                console.log(`[GLPI] User/${userId}/${type} → HTTP ${res.status}`);
+                if (res.status === 404 || res.status === 400) return [];
+                const data = await res.json();
+                console.log(`[GLPI] ${type} data:`, data);
+                if (!Array.isArray(data)) return [];
+                return data;
+            }
+
+            const results = await Promise.allSettled(
+                deviceTypes.map(({ type }) => fetchSubItems(type))
+            );
+
+            const devices = [];
+            results.forEach((res, i) => {
+                if (res.status !== 'fulfilled') return;
+                const { label } = deviceTypes[i];
+                (res.value || []).forEach(item => {
+                    devices.push({
+                        type:   label,
+                        id:     String(item.id            ?? '—'),
+                        name:   String(item.name          ?? item.completename ?? '—'),
+                        serial: String(item.otherserial   ?? '—')
+                    });
+                });
+            });
+            return devices;
+        }
+
+        // === ЭЛЕМЕНТЫ DOM ===
+        const el = {
+            steps:                   document.querySelectorAll('.yform-step'),
+            progressItems:           document.querySelectorAll('.yform-progress-item'),
+            requester:               document.getElementById('requester'),
+            suggestions:             document.getElementById('user-suggestions'),
+            requesterInfo:           document.getElementById('requester-info'),
+            requesterError:          document.getElementById('requester-error'),
+            requesterLoading:        document.getElementById('requester-loading'),
+            template:                document.getElementById('template'),
+            assetGroup:              document.getElementById('asset-group'),
+            asset:                   document.getElementById('asset'),
+            assetHint:               document.getElementById('asset-hint'),
+            employeeGroup:           document.getElementById('employee-group'),
+            employee:                document.getElementById('employee'),
+            subject:                 document.getElementById('subject'),
+            templateContent:         document.getElementById('template-content'),
+            additionalContent:       document.getElementById('additional-content'),
+            fileInput:               document.getElementById('file-input'),
+            fileList:                document.getElementById('file-list'),
+            fileError:               document.getElementById('file-error'),
+            result:                  document.getElementById('result'),
+            submitLoading:           document.getElementById('submit-loading'),
+            prevBtn:                 document.getElementById('prev-btn'),
+            nextBtn:                 document.getElementById('next-btn'),
+            submitBtn:               document.getElementById('submit-btn'),
+            specialFields:           document.getElementById('special-fields'),
+            computerDescGroup:       document.getElementById('computer-desc-group'),
+            computerDesc:            document.getElementById('computer-desc'),
+            hardwareOptionsGroup:    document.getElementById('hardware-options-group'),
+            hardwareCheckboxes:      document.querySelectorAll('#hardware-options-group input[type="checkbox"]'),
+            cartridgeFields:         document.getElementById('cartridge-fields'),
+            cartridgeContact:        document.getElementById('cartridge-contact'),
+            cartridgeLocationSelect: document.getElementById('cartridge-location-select'),
+            cartridgeLocationDetail: document.getElementById('cartridge-location-detail'),
+            cartridgeModel:          document.getElementById('cartridge-model'),
+            cartridgeSerial:         document.getElementById('cartridge-serial'),
+            cartridgeColor:          document.getElementById('cartridge-color'),
+            peripheralsFields:       document.getElementById('peripherals-fields'),
+            peripheralsReason:       document.getElementById('peripherals-reason'),
+            peripheralsCheckboxes:   document.querySelectorAll('#peripherals-fields input[type="checkbox"]'),
+            outlookSignatureFields:  document.getElementById('outlook-signature-fields'),
+            outlookSignatureText:    document.getElementById('outlook-signature-text'),
+            ownershipChangeFields:   document.getElementById('ownership-change-fields'),
+            oldOwnerInput:           document.getElementById('old-owner'),
+            oldOwnerSuggestions:     document.getElementById('old-owner-suggestions'),
+            oldOwnerInfo:            document.getElementById('old-owner-info'),
+            oldOwnerError:           document.getElementById('old-owner-error'),
+            oldOwnerLoading:         document.getElementById('old-owner-loading'),
+            newOwnerInput:           document.getElementById('new-owner'),
+            newOwnerSuggestions:     document.getElementById('new-owner-suggestions'),
+            newOwnerInfo:            document.getElementById('new-owner-info'),
+            newOwnerError:           document.getElementById('new-owner-error'),
+            newOwnerLoading:         document.getElementById('new-owner-loading'),
+            ownershipAssetSelect:    document.getElementById('ownership-asset-select'),
+            ownershipAssetManual:    document.getElementById('ownership-asset-manual'),
+            ownershipAsset:          document.getElementById('ownership-asset'),
+            ownershipAssetInfo:      document.getElementById('ownership-asset-info'),
+            passwordFields:          document.getElementById('password-fields'),
+            passwordFullname:        document.getElementById('password-fullname'),
+            passwordLogin:           document.getElementById('password-login'),
+            passwordPhone:           document.getElementById('password-phone'),
+            findDevicesFields:       document.getElementById('find-devices-fields'),
+            findDevicesLoading:      document.getElementById('find-devices-loading'),
+            findDevicesError:        document.getElementById('find-devices-error'),
+            findDevicesList:         document.getElementById('find-devices-list'),
+            newTicketBtn:            document.getElementById('new-ticket-btn')
+        };
+
+        // === ЗАПОЛНЕНИЕ SELECT ШАБЛОНОВ ===
+        const fragment = document.createDocumentFragment();
+        Object.entries(TEMPLATES).forEach(([key, tmpl]) => {
+            const opt = document.createElement('option');
+            opt.value = key;
+            opt.textContent = tmpl.subject;
+            fragment.appendChild(opt);
+        });
+        el.template.appendChild(fragment);
+
+        // === СОСТОЯНИЕ ===
+        let currentStep = 1;
+        let selectedRequester = null;
+        let selectedOldOwner = null;
+        let selectedNewOwner = null;
+        let selectedFiles = [];
+
+        // === НАВИГАЦИЯ ===
+        function fillSummary() {
+            // Заявитель
+            document.getElementById('sum-requester').textContent =
+                selectedRequester ? selectedRequester.fullName : '—';
+
+            // Шаблон
+            const tmplKey = el.template.value;
+            document.getElementById('sum-template').textContent =
+                tmplKey && TEMPLATES[tmplKey] ? TEMPLATES[tmplKey].subject : '—';
+
+            // Актив / ФИО
+            const assetRow = document.getElementById('sum-asset-row');
+            const currentTmpl = TEMPLATES[tmplKey];
+            let assetVal = '';
+            if (currentTmpl && currentTmpl.requiresAsset) {
+                assetVal = el.asset.value.trim();
+            } else if (el.employee.value.trim()) {
+                assetVal = el.employee.value.trim();
+            }
+            if (assetVal) {
+                document.getElementById('sum-asset').textContent = assetVal;
+                assetRow.style.display = '';
+            } else {
+                assetRow.style.display = 'none';
+            }
+
+            // Тема
+            document.getElementById('sum-subject').textContent = el.subject.value || '—';
+
+            // Доп. сведения
+            const addText = el.additionalContent.value.trim();
+            const addRow = document.getElementById('sum-additional-row');
+            if (addText) {
+                document.getElementById('sum-additional').textContent = addText;
+                addRow.style.display = '';
+            } else {
+                addRow.style.display = 'none';
+            }
+
+            // Файлы
+            const filesRow = document.getElementById('sum-files-row');
+            if (selectedFiles.length) {
+                const ul = document.createElement('ul');
+                ul.className = 'summary-files-list';
+                selectedFiles.forEach(f => {
+                    const li = document.createElement('li');
+                    li.textContent = `${truncate(f.name, 50)} (${(f.size / 1024).toFixed(1)} КБ)`;
+                    ul.appendChild(li);
+                });
+                const container = document.getElementById('sum-files');
+                container.innerHTML = '';
+                container.appendChild(ul);
+                filesRow.style.display = '';
+            } else {
+                filesRow.style.display = 'none';
+            }
+        }
+
+        function showStep(step) {
+            el.steps.forEach(s => s.classList.remove('active'));
+            document.getElementById(`step-${step}`).classList.add('active');
+            el.progressItems.forEach((item, i) => {
+                item.classList.toggle('completed', i < step - 1);
+                item.classList.toggle('active', i === step - 1);
+            });
+            el.prevBtn.style.display = step === 1 ? 'none' : 'block';
+            el.nextBtn.style.display = step === 6 ? 'none' : 'block';
+            el.submitBtn.style.display = step === 6 ? 'block' : 'none';
+            if (step === 6) {
+                fillSummary();
+                el.submitBtn.disabled = !isFormValid();
+            }
+        }
+
+        el.nextBtn.addEventListener('click', () => { if (validateCurrentStep()) { currentStep++; showStep(currentStep); } });
+        el.prevBtn.addEventListener('click', () => { currentStep--; showStep(currentStep); });
+
+        // === ВАЛИДАЦИЯ ===
+        function validateCurrentStep() {
+            if (currentStep === 1) {
+                if (!selectedRequester) {
+                    el.requesterError.textContent = 'Выберите заявителя из списка';
+                    el.requesterError.style.display = 'block';
+                    return false;
+                }
+                el.requesterError.style.display = 'none';
+                return true;
+            }
+            if (currentStep === 2) {
+                if (!el.template.value) { alert('Выберите шаблон заявки'); return false; }
+                return true;
+            }
+            if (currentStep === 3) return validateStep3();
+            return true;
+        }
+
+        function validateStep3() {
+            const tmpl = TEMPLATES[el.template.value];
+            if (tmpl.requiresAsset && tmpl.special !== 'ownership-change' && el.asset.value.trim().length < 4) {
+                alert('Введите корректный инвентарный номер (минимум 4 символа)'); return false;
+            }
+            if (!tmpl.requiresAsset && tmpl.placeholder !== 'Не требуется' && el.employee.value.trim().length < 3) {
+                alert('Введите ФИО сотрудника'); return false;
+            }
+            if (tmpl.special === 'password') {
+                if (!el.passwordFullname.value.trim()) { alert('Введите ФИО сотрудника'); return false; }
+                if (!el.passwordLogin.value.trim())    { alert('Введите логин сотрудника'); return false; }
+                if (!el.passwordPhone.value.trim())    { alert('Введите номер телефона'); return false; }
+            }
+            if (tmpl.special === 'cartridge' && !isCartridgeValid()) {
+                alert('Заполните все поля для замены картриджа'); return false;
+            }
+            if (tmpl.special === 'computer-desc' && !el.computerDesc.value.trim()) {
+                alert('Опишите наблюдаемые проблемы с компьютером'); return false;
+            }
+            if (tmpl.special === 'hardware-options' && !Array.from(el.hardwareCheckboxes).some(cb => cb.checked)) {
+                alert('Выберите хотя бы одно проблемное оборудование'); return false;
+            }
+            if (tmpl.special === 'peripherals') {
+                if (!el.peripheralsReason.value) { alert('Выберите причину запроса'); return false; }
+                if (!Array.from(el.peripheralsCheckboxes).some(cb => cb.checked)) {
+                    alert('Выберите хотя бы одну позицию периферии'); return false;
+                }
+            }
+            if (tmpl.special === 'outlook-signature' && !el.outlookSignatureText.value.trim()) {
+                alert('Введите текст подписи для Outlook'); return false;
+            }
+            if (tmpl.special === 'ownership-change') {
+                if (!selectedOldOwner) { alert('Выберите текущего владельца из списка'); return false; }
+                if (!selectedNewOwner) { alert('Выберите нового владельца из списка'); return false; }
+                if (!getOwnershipAsset()) { alert('Выберите компьютер или введите инв. номер'); return false; }
+            }
+            return true;
+        }
+
+        function isCartridgeValid() {
+            return el.cartridgeContact.value.trim() &&
+                el.cartridgeLocationSelect.value &&
+                el.cartridgeLocationDetail.value.trim() &&
+                el.cartridgeModel.value.trim() &&
+                el.cartridgeColor.value;
+        }
+
+        function getOwnershipAsset() {
+            const val = el.ownershipAssetSelect.style.display !== 'none'
+                ? el.ownershipAssetSelect.value
+                : el.ownershipAsset.value.trim();
+            return val && val !== '#000000' ? val : null;
+        }
+
+        function isFormValid() {
+            if (!selectedRequester || !el.template.value) return false;
+            return validateStep3();
+        }
+
+        // === ПОИСК ПОЛЬЗОВАТЕЛЕЙ — ЕДИНАЯ ФУНКЦИЯ ===
+        function setupUserSearch(inputEl, suggestionsEl, infoEl, errorEl, loadingEl, onSelect) {
+            const doSearch = debounce(async (query) => {
+                try {
+                    const users = await searchUsers(query);
+                    renderSuggestions(users, suggestionsEl, onSelect);
+                } catch (e) {
+                    errorEl.textContent = 'Ошибка поиска: ' + e.message;
+                    errorEl.style.display = 'block';
+                    suggestionsEl.style.display = 'none';
+                } finally {
+                    loadingEl.style.display = 'none';
+                }
+            }, CONFIG.searchDebounceMs);
+
+            inputEl.addEventListener('input', () => {
+                const q = inputEl.value.trim();
+                errorEl.style.display = 'none';
+                suggestionsEl.innerHTML = '';
+                suggestionsEl.style.display = 'none';
+                infoEl.textContent = '';
+
+                if (q.length < 2) return;
+                loadingEl.style.display = 'block';
+                doSearch(q);
+            });
+
+            // Закрытие списка при клике вне поля
+            document.addEventListener('click', (e) => {
+                if (!inputEl.contains(e.target) && !suggestionsEl.contains(e.target)) {
+                    suggestionsEl.style.display = 'none';
+                }
+            });
+        }
+
+        function renderSuggestions(users, container, onSelect) {
+            container.innerHTML = '';
+            if (!users.length) { container.style.display = 'none'; return; }
+            const frag = document.createDocumentFragment();
+            users.forEach(u => {
+                const div = document.createElement('div');
+                div.className = 'user-suggestion';
+                div.innerHTML = `<strong>${escapeHtml(u.fullName)}</strong>`;
+                div.addEventListener('click', () => onSelect(u));
+                frag.appendChild(div);
+            });
+            container.appendChild(frag);
+            container.style.display = 'block';
+        }
+
+        // === ЗАЯВИТЕЛЬ ===
+        setupUserSearch(
+            el.requester, el.suggestions, el.requesterInfo, el.requesterError, el.requesterLoading,
+            (user) => {
+                selectedRequester = user;
+                el.requester.value = user.fullName;
+                el.requesterInfo.textContent = `Заявитель: ${user.fullName} (ID: ${user.id})`;
+                el.suggestions.style.display = 'none';
+                el.requesterError.style.display = 'none';
+                updateContent();
+                if (currentStep === 6) el.submitBtn.disabled = !isFormValid();
+            }
+        );
+
+        // === СТАРЫЙ ВЛАДЕЛЕЦ (с загрузкой ПК) ===
+        setupUserSearch(
+            el.oldOwnerInput, el.oldOwnerSuggestions, el.oldOwnerInfo, el.oldOwnerError, el.oldOwnerLoading,
+            async (user) => {
+                selectedOldOwner = user;
+                el.oldOwnerInput.value = user.fullName;
+                el.oldOwnerInfo.textContent = `✓ Выбран: ${user.fullName} (ID: ${user.id})`;
+                el.oldOwnerSuggestions.style.display = 'none';
+
+                selectedNewOwner = null;
+                el.newOwnerInput.value = '';
+                el.newOwnerInfo.textContent = '';
+                el.ownershipAssetSelect.innerHTML = '<option value="">— Загрузка компьютеров... —</option>';
+                el.ownershipAssetSelect.style.display = 'block';
+                el.ownershipAssetManual.style.display = 'none';
+                el.ownershipAssetInfo.textContent = '';
+
+                try {
+                    const computers = await loadUserComputers(user.id);
+                    el.ownershipAssetSelect.innerHTML = '<option value="">— Выберите компьютер —</option>';
+                    if (computers.length === 0) {
+                        el.ownershipAssetSelect.style.display = 'none';
+                        el.ownershipAssetManual.style.display = 'block';
+                        el.ownershipAssetInfo.textContent = 'У пользователя нет компьютеров. Введите инв. номер вручную.';
+                    } else {
+                        const frag = document.createDocumentFragment();
+                        computers.forEach(pc => {
+                            const opt = document.createElement('option');
+                            opt.value = pc.name;
+                            opt.textContent = `${pc.name} (ID: ${pc.id})`;
+                            frag.appendChild(opt);
+                        });
+                        el.ownershipAssetSelect.appendChild(frag);
+                        el.ownershipAssetInfo.textContent = `Найдено компьютеров: ${computers.length}`;
+                    }
+                } catch (e) {
+                    el.ownershipAssetSelect.style.display = 'none';
+                    el.ownershipAssetManual.style.display = 'block';
+                    el.ownershipAssetInfo.textContent = 'Ошибка загрузки. Введите инв. номер вручную.';
+                }
+                updateContent();
+                if (currentStep === 6) el.submitBtn.disabled = !isFormValid();
+            }
+        );
+
+        // Сброс selectedOldOwner если пользователь редактирует поле вручную
+        el.oldOwnerInput.addEventListener('input', () => { selectedOldOwner = null; el.oldOwnerInfo.textContent = ''; });
+
+        // === НОВЫЙ ВЛАДЕЛЕЦ ===
+        setupUserSearch(
+            el.newOwnerInput, el.newOwnerSuggestions, el.newOwnerInfo, el.newOwnerError, el.newOwnerLoading,
+            (user) => {
+                selectedNewOwner = user;
+                el.newOwnerInput.value = user.fullName;
+                el.newOwnerInfo.textContent = `✓ Выбран: ${user.fullName} (ID: ${user.id})`;
+                el.newOwnerSuggestions.style.display = 'none';
+                updateContentAndValidate();
+            }
+        );
+
+        // Сброс selectedNewOwner если пользователь редактирует поле вручную
+        el.newOwnerInput.addEventListener('input', () => { selectedNewOwner = null; el.newOwnerInfo.textContent = ''; });
+
+        el.ownershipAssetSelect.addEventListener('change', updateContentAndValidate);
+
+        // === ЗАГРУЗКА И ОТОБРАЖЕНИЕ УСТРОЙСТВ ЗАЯВИТЕЛЯ ===
+        async function renderUserDevices() {
+            if (!selectedRequester) {
+                el.findDevicesList.innerHTML = '<div class="devices-empty">Сначала выберите заявителя на шаге 1.</div>';
+                return;
+            }
+
+            el.findDevicesLoading.style.display = 'block';
+            el.findDevicesError.style.display = 'none';
+            el.findDevicesList.innerHTML = '';
+
+            try {
+                const devices = await loadAllUserDevices(selectedRequester.id);
+
+                if (!devices.length) {
+                    el.findDevicesList.innerHTML = '<div class="devices-empty">Устройства не найдены.</div>';
+                    updateContent();
+                    return;
+                }
+
+                const table = document.createElement('table');
+                table.className = 'devices-table';
+                table.innerHTML = `<thead><tr>
+                    <th>Тип</th>
+                    <th>Наименование</th>
+                    <th>Schlumberger Asset</th>
+                </tr></thead>`;
+                const tbody = document.createElement('tbody');
+                devices.forEach(d => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${escapeHtml(d.type)}</td>
+                        <td>${escapeHtml(d.name)}</td>
+                        <td>${escapeHtml(d.serial)}</td>`;
+                    tbody.appendChild(tr);
+                });
+                table.appendChild(tbody);
+                el.findDevicesList.appendChild(table);
+                updateContent(devices);
+            } catch (e) {
+                el.findDevicesError.textContent = 'Ошибка загрузки устройств: ' + e.message;
+                el.findDevicesError.style.display = 'block';
+            } finally {
+                el.findDevicesLoading.style.display = 'none';
+            }
+        }
+
+        // === ОБРАБОТКА ШАБЛОНА ===
+        el.template.addEventListener('change', () => {
+            const tmpl = TEMPLATES[el.template.value];
+            if (!tmpl) { hideAllFields(); updateContent(); return; }
+
+            const isAsset = tmpl.requiresAsset && tmpl.special !== 'ownership-change';
+            const isEmployee = !tmpl.requiresAsset && tmpl.placeholder !== 'Не требуется';
+
+            el.assetGroup.style.display    = isAsset ? 'block' : 'none';
+            el.employeeGroup.style.display = isEmployee ? 'block' : 'none';
+
+            if (isAsset) {
+                el.asset.placeholder = tmpl.placeholder;
+                el.assetHint.textContent = tmpl.placeholder;
+                el.employee.value = '';
+            } else if (isEmployee) {
+                el.employee.placeholder = tmpl.placeholder;
+                el.asset.value = '';
+            } else {
+                el.asset.value = '';
+                el.employee.value = '';
+            }
+
+            hideAllSpecial();
+
+            const specialMap = {
+                'password':         () => { el.passwordFields.style.display = 'block'; el.assetGroup.style.display = 'none'; el.employeeGroup.style.display = 'none'; },
+                'cartridge':        () => { el.cartridgeFields.style.display = 'block';       el.cartridgeSerial.value = el.asset.value; },
+                'computer-desc':    () => { el.computerDescGroup.style.display = 'block'; },
+                'hardware-options': () => { el.hardwareOptionsGroup.style.display = 'block'; },
+                'peripherals':      () => { el.peripheralsFields.style.display = 'block'; },
+                'outlook-signature':() => { el.outlookSignatureFields.style.display = 'block'; },
+                'ownership-change': () => { el.ownershipChangeFields.style.display = 'block'; el.assetGroup.style.display = 'none'; },
+                'find-devices':     () => {
+                    el.findDevicesFields.style.display = 'block';
+                    el.assetGroup.style.display = 'none';
+                    renderUserDevices();
+                }
+            };
+
+            if (tmpl.special && specialMap[tmpl.special]) {
+                specialMap[tmpl.special]();
+                el.specialFields.style.display = 'block';
+            } else {
+                el.specialFields.style.display = 'none';
+            }
+
+            updateContent();
+            if (currentStep === 6) el.submitBtn.disabled = !isFormValid();
+        });
+
+        function hideAllFields() {
+            el.assetGroup.style.display = 'none';
+            el.employeeGroup.style.display = 'none';
+            el.specialFields.style.display = 'none';
+            el.asset.value = '';
+            el.employee.value = '';
+            hideAllSpecial();
+        }
+
+        function hideAllSpecial() {
+            [el.cartridgeFields, el.computerDescGroup, el.hardwareOptionsGroup,
+             el.peripheralsFields, el.outlookSignatureFields, el.ownershipChangeFields,
+             el.findDevicesFields, el.passwordFields
+            ].forEach(f => f.style.display = 'none');
+
+            el.findDevicesList.innerHTML = '';
+            el.findDevicesError.style.display = 'none';
+
+            if (el.passwordFullname) el.passwordFullname.value = '';
+            if (el.passwordLogin)    el.passwordLogin.value    = '';
+            if (el.passwordPhone)    el.passwordPhone.value    = '';
+
+            el.computerDesc.value = '';
+            el.outlookSignatureText.value = '';
+            el.peripheralsReason.value = '';
+            el.hardwareCheckboxes.forEach(cb => cb.checked = false);
+            el.peripheralsCheckboxes.forEach(cb => cb.checked = false);
+
+            [el.cartridgeContact, el.cartridgeLocationDetail, el.cartridgeModel, el.cartridgeSerial].forEach(f => f.value = '');
+            el.cartridgeLocationSelect.value = '';
+            el.cartridgeColor.value = '';
+
+            el.oldOwnerInput.value = '';   el.oldOwnerInfo.textContent = '';
+            el.newOwnerInput.value = '';   el.newOwnerInfo.textContent = '';
+            selectedOldOwner = null;
+            selectedNewOwner = null;
+            el.ownershipAssetSelect.innerHTML = '<option value="">— Выберите компьютер —</option>';
+            el.ownershipAssetSelect.style.display = 'none';
+            el.ownershipAssetManual.style.display = 'none';
+            el.ownershipAssetInfo.textContent = '';
+            el.ownershipAsset.value = '';
+        }
+
+        el.asset.addEventListener('input', () => {
+            if (el.template.value === 'cartridge') el.cartridgeSerial.value = el.asset.value;
+            updateContentAndValidate();
+        });
+
+        [el.employee, el.computerDesc, el.outlookSignatureText, el.ownershipAsset,
+         el.passwordFullname, el.passwordLogin, el.passwordPhone].forEach(f =>
+            f.addEventListener('input', updateContentAndValidate)
+        );
+        [el.peripheralsReason, el.cartridgeLocationSelect, el.cartridgeColor].forEach(f =>
+            f.addEventListener('change', updateContentAndValidate)
+        );
+        [el.cartridgeContact, el.cartridgeLocationDetail, el.cartridgeModel, el.cartridgeSerial].forEach(f =>
+            f.addEventListener('input', updateContentAndValidate)
+        );
+        el.hardwareCheckboxes.forEach(cb => cb.addEventListener('change', updateContentAndValidate));
+        el.peripheralsCheckboxes.forEach(cb => cb.addEventListener('change', updateContentAndValidate));
+
+        function updateContentAndValidate() {
+            updateContent();
+            if (currentStep === 6) el.submitBtn.disabled = !isFormValid();
+        }
+
+        // === ГЕНЕРАЦИЯ СОДЕРЖАНИЯ ===
+        function updateContent(devices) {
+            const tmplKey = el.template.value;
+            const tmpl = TEMPLATES[tmplKey];
+            if (!tmpl) { el.subject.value = ''; el.templateContent.value = ''; return; }
+
+            const assetVal = (tmpl.requiresAsset && tmpl.special !== 'ownership-change')
+                ? el.asset.value.trim() || '#000000'
+                : el.employee.value.trim() || '[ФИО сотрудника]';
+
+            let subject = tmpl.subject;
+            let content = tmpl.content;
+
+            // Базовые подстановки
+            if (tmpl.requiresAsset && tmpl.special !== 'ownership-change') {
+                subject = subject.replace('#000000', assetVal);
+                content  = content.replace('#000000', assetVal);
+            }
+
+            // Специфичные блоки
+            if (tmpl.special === 'cartridge') {
+                const colorText = el.cartridgeColor.value
+                    ? el.cartridgeColor.options[el.cartridgeColor.selectedIndex].text
+                    : 'ЦВЕТ';
+                const loc = el.cartridgeLocationSelect.value
+                    ? `${LOCATIONS[el.cartridgeLocationSelect.value]}, ${el.cartridgeLocationDetail.value.trim()}`
+                    : '[локация не выбрана]';
+                content = content.replace('ЦВЕТ', colorText) + `\n\n` + [
+                    `1. Заявитель: ${selectedRequester ? selectedRequester.fullName : '[Заявитель]'}`,
+                    `2. Контактный телефон: ${el.cartridgeContact.value.trim() || '[не указано]'}`,
+                    `3. Размещение аппарата: ${loc}`,
+                    `4. Тип оборудования, модель МФУ: ${el.cartridgeModel.value.trim() || '[не указано]'}`,
+                    `5. Серийный AXUS № оборудования: ${el.cartridgeSerial.value.trim() || assetVal}`,
+                    `6. Описание проблемы: Замена "${colorText}" картриджа.`
+                ].join('\n');
+            }
+
+            if (tmpl.special === 'computer-desc') {
+                content += `\n\n${el.computerDesc.value.trim() || '[описание не указано]'}`;
+            }
+
+            if (tmpl.special === 'hardware-options') {
+                const selected = Array.from(el.hardwareCheckboxes).filter(cb => cb.checked).map(cb => cb.value).join(', ');
+                content += `\n\nВыбрано оборудование: ${selected || '[ничего не выбрано]'}`;
+            }
+
+            if (tmpl.special === 'peripherals') {
+                const reason = el.peripheralsReason.value
+                    ? el.peripheralsReason.options[el.peripheralsReason.selectedIndex].text
+                    : '[причина не выбрана]';
+                const items = Array.from(el.peripheralsCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+                content = content.replace('[ПРИЧИНА]', reason);
+                content += items.length ? `\n\n- ${items.join('\n- ')}` : '\n\n[ничего не выбрано]';
+            }
+
+            if (tmpl.special === 'outlook-signature') {
+                content = content.replace('[введите текст подписи ниже]', el.outlookSignatureText.value.trim() || '[подпись не указана]');
+            }
+
+            if (tmpl.special === 'ownership-change') {
+                content = content
+                    .replace('#000000', getOwnershipAsset() || '#000000')
+                    .replace('[СТАРЫЙ_ВЛАДЕЛЕЦ]', selectedOldOwner ? selectedOldOwner.fullName : '[СТАРЫЙ_ВЛАДЕЛЕЦ]')
+                    .replace('[НОВЫЙ_ВЛАДЕЛЕЦ]', selectedNewOwner ? selectedNewOwner.fullName : '[НОВЫЙ_ВЛАДЕЛЕЦ]');
+            }
+
+            if (tmpl.special === 'password') {
+                content += '\n\n' + [
+                    `ФИО: ${el.passwordFullname.value.trim() || '[не указано]'}`,
+                    `Логин: ${el.passwordLogin.value.trim() || '[не указано]'}`,
+                    `Номер телефона: ${el.passwordPhone.value.trim() || '[не указано]'}`
+                ].join('\n');
+            }
+
+            if (tmpl.special === 'find-devices') {
+                if (devices && devices.length) {
+                    const lines = devices.map(d =>
+                        `• ${d.type}: ${d.name} | Schlumberger Asset: ${d.serial}`
+                    ).join('\n');
+                    content += `\n\nСписок устройств:\n${lines}`;
+                } else {
+                    content += '\n\n[Устройства загружаются...]';
+                }
+            }
+
+            el.subject.value = subject;
+            el.templateContent.value = content;
+        }
+
+        // === ФАЙЛЫ ===
+        el.fileInput.addEventListener('change', () => {
+            const oversized = Array.from(el.fileInput.files).filter(f => f.size > CONFIG.maxFileSizeBytes);
+            const valid = Array.from(el.fileInput.files).filter(f => f.size <= CONFIG.maxFileSizeBytes);
+            el.fileError.style.display = oversized.length ? 'block' : 'none';
+            if (oversized.length) el.fileError.textContent = `Файлы >5 МБ исключены (${oversized.length} шт.)`;
+            selectedFiles = [...selectedFiles, ...valid];
+            renderFiles();
+        });
+
+        function renderFiles() {
+            el.fileList.innerHTML = '';
+            if (!selectedFiles.length) {
+                el.fileList.innerHTML = '<em style="color:#95a5a6">Файлы не выбраны</em>';
+                return;
+            }
+            const frag = document.createDocumentFragment();
+            selectedFiles.forEach((f, i) => {
+                const div = document.createElement('div');
+                div.className = 'file-item';
+                div.innerHTML = `<span title="${escapeHtml(f.name)}">${escapeHtml(truncate(f.name, 50))} (${(f.size / 1024).toFixed(1)} КБ)</span>`;
+                const btn = document.createElement('span');
+                btn.className = 'remove';
+                btn.textContent = '×';
+                btn.addEventListener('click', () => removeFile(i));
+                div.appendChild(btn);
+                frag.appendChild(div);
+            });
+            el.fileList.appendChild(frag);
+        }
+
+        function removeFile(i) {
+            selectedFiles.splice(i, 1);
+            renderFiles();
+            const dt = new DataTransfer();
+            selectedFiles.forEach(f => dt.items.add(f));
+            el.fileInput.files = dt.files;
+        }
+
+        // === ОТПРАВКА В TELEGRAM ===
+        async function sendToTelegram(ticketId, subject, content, fileNames) {
+            const link = `${CONFIG.glpiBaseUrl}/front/ticket.form.php?id=${ticketId}`;
+            let message = `<b>Новый тикет #${ticketId}</b>\n\n<b>Тема:</b> ${escapeHtml(subject)}\n\n<b>Содержание:</b>\n<pre>${escapeHtml(content)}</pre>\n\n<a href="${link}">Открыть в GLPI</a>`;
+            if (fileNames.length) message += `\n\n<b>Файлы (${fileNames.length}):</b>\n• ${fileNames.join('\n• ')}`;
+            await fetch(`https://api.telegram.org/bot${CONFIG.telegramBotToken}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: CONFIG.telegramChatId, text: message, parse_mode: 'HTML', disable_web_page_preview: true })
+            });
+        }
+
+        // === ОТПРАВКА ТИКЕТА ===
+        el.submitBtn.addEventListener('click', async () => {
+            el.submitBtn.disabled = true;
+            el.submitBtn.textContent = 'Отправка...';
+            el.result.style.display = 'none';
+            el.submitLoading.style.display = 'block';
+
+            try {
+                await initSession();
+
+                let finalContent = el.templateContent.value.trim();
+                if (selectedRequester) finalContent = `Заявитель: ${selectedRequester.fullName}\n\n${finalContent}`;
+                const additional = el.additionalContent.value.trim();
+                if (additional) finalContent += '\n\n---\nДополнительно:\n' + additional;
+
+                // =============================================================
+                // ВАЖНО ДЛЯ РАЗРАБОТЧИКОВ: Создание тикета и назначение заявителя
+                // =============================================================
+                // GLPI при создании тикета через API автоматически проставляет
+                // владельца API-токена в два поля:
+                //   - users_id_lastupdater  — кто последний изменял
+                //   - users_id_recipient    — кто отображается в шапке тикета
+                //                            как "заявитель" (верхняя строка)
+                //
+                // НЕЛЬЗЯ переопределить эти поля при POST /Ticket — GLPI их игнорирует.
+                //
+                // ПРАВИЛЬНОЕ решение (два шага):
+                //   1. POST /Ticket_User        — добавить нужного пользователя
+                //                                 с actorstype=1 (роль: заявитель)
+                //   2. PUT  /Ticket/{id}         — обновить поле users_id_recipient,
+                //                                 это меняет имя в шапке тикета
+                //
+                // Поле users_id_recipient — это именно то что показывается
+                // в верхней строке тикета (не users_id и не users_id_requester!).
+                // Это было выяснено опытным путём через /apirest.php/Ticket/{id}.
+                // =============================================================
+
+                const ticketData = await glpiFetch('/Ticket', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ input: { name: el.subject.value, content: finalContent, requesttypes_id: 1 } })
+                });
+                const ticketId = ticketData.id;
+
+                // Привязка заявителя и загрузка файлов параллельно
+                const tasks = [];
+
+                if (selectedRequester) {
+                    tasks.push((async () => {
+                        // Шаг 1: Добавляем выбранного пользователя как заявителя в Ticket_User
+                        // actorstype=1 означает роль "Requester / Заявитель"
+                        await glpiFetch('/Ticket_User', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ input: { tickets_id: ticketId, users_id: selectedRequester.id, actorstype: 1 } })
+                        }).catch(e => console.warn('Add requester failed', e));
+
+                        // Шаг 2: Обновляем users_id_recipient — это поле отвечает за имя
+                        // в верхней строке тикета ("Created by / Заявитель").
+                        // Без этого шага там всегда будет владелец API-токена, а не реальный заявитель.
+                        // НЕ используйте users_id или users_id_requester — GLPI их игнорирует при PUT.
+                        await glpiFetch(`/Ticket/${ticketId}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ input: { id: ticketId, users_id_recipient: selectedRequester.id } })
+                        }).catch(() => {});
+                    })());
+                }
+
+                // Файлы загружаем параллельно
+                const fileUploads = selectedFiles.map(async (file) => {
+                    const form = new FormData();
+                    form.append('uploadManifest', JSON.stringify({ input: { name: file.name } }));
+                    form.append('filename', file, file.name);
+                    try {
+                        const docData = await fetch(`${CONFIG.glpiApiUrl}/Document`, {
+                            method: 'POST',
+                            headers: { 'Session-Token': sessionToken, 'App-Token': CONFIG.glpiAppToken },
+                            body: form
+                        }).then(r => r.json());
+                        if (docData.id) {
+                            await glpiFetch('/Document_Item', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ input: { documents_id: docData.id, items_id: ticketId, itemtype: 'Ticket' } })
+                            });
+                        }
+                    } catch (e) { console.warn('File upload failed:', file.name, e); }
+                });
+
+                await Promise.allSettled([...tasks, ...fileUploads]);
+
+                sendToTelegram(ticketId, el.subject.value, finalContent, selectedFiles.map(f => f.name)).catch(() => {});
+
+                glpiFetch('/killSession').catch(() => {});
+                sessionToken = null;
+
+                const url = `${CONFIG.glpiBaseUrl}/front/ticket.form.php?id=${ticketId}`;
+                el.result.innerHTML = `Тикет успешно создан! <span class="ticket-link" onclick="window.open('${url}', '_blank')">#${ticketId}</span>`;
+                el.result.className = 'result success';
+                el.result.style.display = 'block';
+                el.newTicketBtn.style.display = 'block';
+                document.getElementById('summary-card').style.display = 'none';
+            } catch (e) {
+                el.result.textContent = 'Ошибка: ' + e.message;
+                el.result.className = 'result error';
+                el.result.style.display = 'block';
+            } finally {
+                el.submitBtn.disabled = false;
+                el.submitBtn.textContent = 'Отправить тикет';
+                el.submitLoading.style.display = 'none';
+            }
+        });
+
+        // === НОВАЯ ЗАЯВКА ===
+        el.newTicketBtn.addEventListener('click', () => {
+            // Сброс полей
+            el.requester.value = '';
+            el.requesterInfo.textContent = '';
+            el.requesterError.style.display = 'none';
+            selectedRequester = null;
+
+            el.template.selectedIndex = 0;
+            el.asset.value = '';
+            el.assetHint.textContent = '';
+            el.employee.value = '';
+            el.subject.value = '';
+            el.templateContent.value = '';
+            el.additionalContent.value = '';
+
+            // Сброс файлов
+            selectedFiles = [];
+            renderFiles();
+            const dt = new DataTransfer();
+            el.fileInput.files = dt.files;
+
+            // Сброс спецполей
+            el.computerDesc.value = '';
+            el.hardwareCheckboxes.forEach(cb => cb.checked = false);
+            el.cartridgeContact.value = '';
+            el.cartridgeLocationSelect.selectedIndex = 0;
+            el.cartridgeLocationDetail.value = '';
+            el.cartridgeModel.value = '';
+            el.cartridgeSerial.value = '';
+            el.cartridgeColor.selectedIndex = 0;
+            el.peripheralsReason.selectedIndex = 0;
+            el.peripheralsCheckboxes.forEach(cb => cb.checked = false);
+            el.outlookSignatureText.value = '';
+            el.oldOwnerInput.value = '';
+            el.newOwnerInput.value = '';
+            el.ownershipAsset.value = '';
+            el.passwordFullname.value = '';
+            el.passwordLogin.value = '';
+            el.passwordPhone.value = '';
+
+            // Сброс скрытых блоков
+            el.specialFields.style.display = 'none';
+            el.employeeGroup.style.display = 'none';
+            el.assetGroup.style.display = '';
+
+            // Скрыть кнопку и результат
+            el.newTicketBtn.style.display = 'none';
+            el.result.style.display = 'none';
+            document.getElementById('summary-card').style.display = '';
+
+            showStep(1);
+        });
+
+        // === ИНИЦИАЛИЗАЦИЯ ===
+        showStep(1);
+        initSession().catch(() => {});
+    </script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+[Unit]
+Description=GLPI Panel
+After=network.target
+
+[Service]
+User=egor
+WorkingDirectory=/home/egor/glpi-panel
+ExecStart=/usr/bin/python3 /home/egor/glpi-panel/panel.py
+Restart=always
+RestartSec=3
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

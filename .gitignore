@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+*.log
+*.log.*
+*.gz
+*.bak
+*.db
+.env
+config.json
+meta.json
+traffic.json
+tickets.json
+data/
+*.conf
